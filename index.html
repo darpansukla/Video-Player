@@ -21,6 +21,9 @@
             border: 1px solid rgba(226, 232, 240, 1);
             box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08);
         }
+        .transition-opacity-custom {
+            transition: opacity 0.4s ease-in-out;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-between p-4 bg-white">
@@ -67,32 +70,27 @@
             </div>
         </div>
 
-        <!-- VIEW 2: Pure White Popup Trigger (No Video Preview on Load) -->
-        <div id="player-trigger-view" class="w-full liquid-card p-10 rounded-3xl text-center space-y-6 hidden">
-            <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center mx-auto shadow-xl shadow-indigo-600/30 animate-pulse">
-                <i data-lucide="play" class="w-8 h-8 fill-white translate-x-0.5"></i>
+        <!-- VIEW 2: Completely White Initial Screen with Just Click Button -->
+        <div id="player-trigger-view" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 hidden">
+            <div class="w-full max-w-sm text-center space-y-6">
+                <button onclick="launchFullscreenStream()" class="w-full py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl text-sm font-extrabold shadow-xl shadow-indigo-600/30 cursor-pointer hover:opacity-95 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="play" class="w-5 h-5 fill-white"></i> Click to Play
+                </button>
             </div>
-            <div class="space-y-2">
-                <h2 class="text-lg font-bold text-slate-900">Your Secure Stream is Ready</h2>
-                <p class="text-xs text-slate-500">Click below to start playing in immersive full-screen mode.</p>
-            </div>
-            <button onclick="launchFullscreenStream()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-indigo-600/30 cursor-pointer hover:opacity-95 transition-all">
-                Click to Play Fullscreen
-            </button>
         </div>
 
-        <!-- VIEW 3: Active Fullscreen Video Container (Hidden until launched, contains floating overlay controls) -->
-        <div id="active-player-container" class="fixed inset-0 z-50 bg-black hidden flex flex-col items-center justify-center">
+        <!-- VIEW 3: Active Fullscreen Video Container with Auto-hiding Controls -->
+        <div id="active-player-container" class="fixed inset-0 z-50 bg-black hidden flex flex-col items-center justify-center" onclick="handleScreenTap()">
             
-            <!-- Floating Top Toolbar Over Video -->
-            <div class="absolute top-4 left-4 right-4 z-40 flex items-center justify-between px-4 py-2 bg-slate-900/70 backdrop-blur-md rounded-2xl border border-white/10 text-white">
+            <!-- Floating Top Toolbar (Auto-hides after 2 seconds) -->
+            <div id="floating-controls" class="absolute top-4 left-4 right-4 z-40 flex items-center justify-between px-4 py-2 bg-slate-900/80 backdrop-blur-md rounded-2xl border border-white/10 text-white transition-opacity-custom opacity-100">
                 <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
                     <i data-lucide="shield-check" class="w-4 h-4"></i> Secure Fullscreen HD
                 </div>
                 
                 <div class="flex items-center gap-2.5">
-                    <!-- Quality Selector -->
-                    <div class="flex items-center gap-1 bg-black/40 border border-white/20 rounded-xl px-2.5 py-1">
+                    <!-- Quality Selector Only -->
+                    <div class="flex items-center gap-1 bg-black/40 border border-white/20 rounded-xl px-2.5 py-1" onclick="event.stopPropagation()">
                         <i data-lucide="settings" class="w-3.5 h-3.5 text-indigo-400"></i>
                         <select id="quality-select" onchange="changeQuality(this.value)" class="bg-transparent text-[11px] font-bold text-white focus:outline-none cursor-pointer">
                             <option value="hd1080" class="bg-slate-900">1080p</option>
@@ -100,25 +98,20 @@
                             <option value="default" selected class="bg-slate-900">Auto HD</option>
                         </select>
                     </div>
-
-                    <!-- Rotate Screen Icon Button -->
-                    <button onclick="toggleScreenOrientation()" title="Rotate Screen" class="inline-flex items-center gap-1 text-xs font-semibold text-white bg-indigo-600/60 hover:bg-indigo-600 border border-indigo-400/30 px-3 py-1.5 rounded-xl cursor-pointer">
-                        <i data-lucide="smartphone-nfc" class="w-3.5 h-3.5"></i> Rotate
-                    </button>
                 </div>
             </div>
 
             <!-- Transparent Anti-Scrub Shield -->
             <div class="absolute inset-0 z-30 pointer-events-auto"></div>
 
-            <!-- Edge-to-Edge Fullscreen YouTube Iframe (No Black Bars via CSS object-cover/scale) -->
+            <!-- Edge-to-Edge Fullscreen YouTube Iframe -->
             <iframe id="youtube-iframe" class="absolute inset-0 w-full h-full object-cover pointer-events-none scale-105" src="" title="Protected Player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
         </div>
 
     </main>
 
     <!-- Footer Attribution -->
-    <footer class="w-full text-center py-4 text-[11px] text-slate-500 border-t border-slate-100 mt-4 space-y-1">
+    <footer id="main-footer" class="w-full text-center py-4 text-[11px] text-slate-500 border-t border-slate-100 mt-4 space-y-1">
         <p class="font-bold text-slate-700">Secure Protected Learning Portal</p>
         <p>Design & Developed with ❤️ by <span class="text-indigo-600 font-semibold">Darpan Sukla</span></p>
     </footer>
@@ -136,6 +129,7 @@
         }
 
         let currentVideoId = '';
+        let hideControlsTimer = null;
 
         window.addEventListener('DOMContentLoaded', () => {
             refreshIcons();
@@ -144,6 +138,8 @@
 
             if (currentVideoId) {
                 document.getElementById('generator-view').classList.add('hidden');
+                document.getElementById('main-footer').classList.add('hidden');
+                document.querySelector('header').classList.add('hidden');
                 document.getElementById('player-trigger-view').classList.remove('hidden');
             } else {
                 document.getElementById('player-trigger-view').classList.add('hidden');
@@ -154,36 +150,45 @@
         function launchFullscreenStream() {
             if (!currentVideoId) return;
 
-            // Load iframe with autoplay and parameters blocking scrubbing
             const embedUrl = `https://www.youtube.com/embed/${currentVideoId}?autoplay=1&controls=0&disablekb=1&modestbranding=1&rel=0`;
             document.getElementById('youtube-iframe').src = embedUrl;
 
-            // Show active fullscreen container
-            const playerContainer = document.getElementById('active-player-container');
-            playerContainer.classList.remove('hidden');
+            document.getElementById('active-player-container').classList.remove('hidden');
             document.getElementById('player-trigger-view').classList.add('hidden');
-            document.querySelector('header').classList.add('hidden');
-            document.querySelector('footer').classList.add('hidden');
 
-            // Force browser fullscreen and landscape orientation lock
+            const playerContainer = document.getElementById('active-player-container');
             if (playerContainer.requestFullscreen) {
                 playerContainer.requestFullscreen().catch(err => {});
             }
             if (screen.orientation && screen.orientation.lock) {
                 screen.orientation.lock('landscape').catch(err => {});
             }
+
+            // Start auto-hide timer for controls upon entering
+            startHideControlsTimer();
         }
 
-        function toggleScreenOrientation() {
-            if (screen.orientation && screen.orientation.lock) {
-                const currentType = screen.orientation.type;
-                if (currentType.includes('landscape')) {
-                    screen.orientation.lock('portrait').catch(err => {});
-                } else {
-                    screen.orientation.lock('landscape').catch(err => {});
-                }
+        function startHideControlsTimer() {
+            const controls = document.getElementById('floating-controls');
+            controls.style.opacity = '1';
+            controls.style.pointerEvents = 'auto';
+
+            if (hideControlsTimer) clearTimeout(hideControlsTimer);
+
+            hideControlsTimer = setTimeout(() => {
+                controls.style.opacity = '0';
+                controls.style.pointerEvents = 'none';
+            }, 2000);
+        }
+
+        function handleScreenTap() {
+            const controls = document.getElementById('floating-controls');
+            if (controls.style.opacity === '0' || controls.style.opacity === '') {
+                startHideControlsTimer();
             } else {
-                alert("Screen rotation is managed by your device settings.");
+                controls.style.opacity = '0';
+                controls.style.pointerEvents = 'none';
+                if (hideControlsTimer) clearTimeout(hideControlsTimer);
             }
         }
 
