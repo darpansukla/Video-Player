@@ -31,7 +31,7 @@
                 <i data-lucide="link" class="w-6 h-6"></i>
             </div>
             <h1 class="text-xl font-extrabold tracking-tight">Secure Video Link Creator</h1>
-            <p class="text-xs text-slate-400">Paste any YouTube link below to convert it into a locked, non-skippable HD stream link.</p>
+            <p class="text-xs text-slate-400">Paste any YouTube link below to convert it into an auto-playing, locked HD stream link.</p>
         </div>
 
         <div class="space-y-4">
@@ -56,13 +56,13 @@
         </div>
     </div>
 
-    <!-- VIEW 2: Secure Locked Player View -->
+    <!-- VIEW 2: Secure Auto-Playing Locked Player View -->
     <div id="player-view" class="max-w-3xl w-full mx-auto space-y-4 hidden">
         
         <!-- Top Toolbar Control Bar -->
         <div class="liquid-card px-4 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
             <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
-                <i data-lucide="shield-check" class="w-4 h-4"></i> Secure Stream Locked
+                <i data-lucide="shield-check" class="w-4 h-4"></i> Secure Stream Auto-Playing
             </div>
             
             <div class="flex items-center gap-2.5">
@@ -86,19 +86,8 @@
 
         <!-- Video Wrapper Container -->
         <div id="video-wrapper" class="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl bg-black border border-slate-800">
-            
-            <!-- Browser Policy Autoplay Bypass Overlay Button -->
-            <div id="play-trigger-overlay" onclick="startPlayback()" class="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer transition-opacity">
-                <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-600/50 mb-3 hover:scale-105 transition-transform">
-                    <i data-lucide="play" class="w-8 h-8 fill-white translate-x-0.5"></i>
-                </div>
-                <span class="text-sm font-bold text-white tracking-wide">Click to Play Secure Stream</span>
-                <span class="text-[11px] text-slate-400 mt-1">High Definition • Scrubbing Disabled</span>
-            </div>
-
-            <!-- Transparent shield to block scrubbing clicks during playback -->
-            <div class="absolute inset-0 z-20 pointer-events-none" id="scrub-shield"></div>
-            
+            <!-- Transparent shield overlay to completely block clicks and scrubbing -->
+            <div class="absolute inset-0 z-20 cursor-not-allowed"></div>
             <!-- YouTube Iframe API Container -->
             <div id="youtube-player" class="w-full h-full"></div>
         </div>
@@ -141,9 +130,8 @@
                 document.getElementById('generator-view').classList.add('hidden');
                 document.getElementById('player-view').classList.remove('hidden');
 
-                // Load YouTube API
                 if (window.YT && window.YT.Player) {
-                    createPlayer(videoId);
+                    createAutoPlayer(videoId);
                 }
             } else {
                 document.getElementById('player-view').classList.add('hidden');
@@ -153,46 +141,34 @@
 
         function onYouTubeIframeAPIReady() {
             if (pendingVideoId) {
-                createPlayer(pendingVideoId);
+                createAutoPlayer(pendingVideoId);
             }
         }
 
-        function createPlayer(videoId) {
+        function createAutoPlayer(videoId) {
             ytPlayer = new YT.Player('youtube-player', {
                 height: '100%',
                 width: '100%',
                 videoId: videoId,
                 playerVars: {
-                    'autoplay': 0,        // Handled by user gesture overlay for guaranteed mobile compatibility
-                    'controls': 0,        // Removes scrubbing timeline
+                    'autoplay': 1,        // Forces immediate auto-play
+                    'mute': 1,            // Required by mobile browsers to execute instant autoplay
+                    'controls': 0,        // Hides scrubbing timeline
                     'disablekb': 1,       // Blocks keyboard skipping
                     'modestbranding': 1,
                     'rel': 0,
-                    'vq': 'hd1080'
+                    'vq': 'hd1080'        // High Definition start
                 },
                 events: {
                     'onReady': function(event) {
                         event.target.setPlaybackQuality('hd1080');
+                        event.target.unMute(); // Instantly unmutes sound once the auto-play stream kicks off
+                        event.target.playVideo();
                     }
                 }
             });
-        }
 
-        function startPlayback() {
-            if (ytPlayer && ytPlayer.playVideo) {
-                ytPlayer.setPlaybackQuality('hd1080');
-                ytPlayer.playVideo();
-            }
-            // Hide the play trigger overlay once clicked
-            const overlay = document.getElementById('play-trigger-overlay');
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                // Enable pointer events block shield on video
-                document.getElementById('scrub-shield').style.pointerEvents = 'auto';
-            }, 300);
-
-            // Trigger full screen / landscape layout
+            // Trigger full screen / landscape layout automatically
             const wrapper = document.getElementById('video-wrapper');
             if (wrapper.requestFullscreen) {
                 wrapper.requestFullscreen().catch(err => {});
