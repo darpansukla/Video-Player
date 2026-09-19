@@ -24,7 +24,7 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- VIEW 1: Link Generator Creator Dashboard (Shown if no link parameter is present) -->
+    <!-- VIEW 1: Link Generator Dashboard -->
     <div id="generator-view" class="max-w-xl w-full mx-auto liquid-card p-8 rounded-3xl shadow-2xl space-y-6 hidden">
         <div class="text-center space-y-2">
             <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto border border-indigo-500/30">
@@ -45,7 +45,6 @@
             </button>
         </div>
 
-        <!-- Result Box -->
         <div id="result-box" class="space-y-2 hidden pt-2 border-t border-slate-800">
             <label class="block text-xs font-bold uppercase tracking-wider text-emerald-400">Your Shareable Secure Link:</label>
             <div class="flex gap-2">
@@ -57,7 +56,7 @@
         </div>
     </div>
 
-    <!-- VIEW 2: Secure Locked Player View (Shown when someone clicks a generated link) -->
+    <!-- VIEW 2: Secure Locked Player View -->
     <div id="player-view" class="max-w-3xl w-full mx-auto space-y-4 hidden">
         
         <!-- Top Toolbar Control Bar -->
@@ -87,14 +86,25 @@
 
         <!-- Video Wrapper Container -->
         <div id="video-wrapper" class="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl bg-black border border-slate-800">
-            <!-- Transparent shield to block scrubbing clicks -->
-            <div class="absolute inset-0 z-20 cursor-not-allowed"></div>
+            
+            <!-- Browser Policy Autoplay Bypass Overlay Button -->
+            <div id="play-trigger-overlay" onclick="startPlayback()" class="absolute inset-0 z-30 bg-slate-950/80 backdrop-blur-xs flex flex-col items-center justify-center cursor-pointer transition-opacity">
+                <div class="w-16 h-16 bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-600/50 mb-3 hover:scale-105 transition-transform">
+                    <i data-lucide="play" class="w-8 h-8 fill-white translate-x-0.5"></i>
+                </div>
+                <span class="text-sm font-bold text-white tracking-wide">Click to Play Secure Stream</span>
+                <span class="text-[11px] text-slate-400 mt-1">High Definition • Scrubbing Disabled</span>
+            </div>
+
+            <!-- Transparent shield to block scrubbing clicks during playback -->
+            <div class="absolute inset-0 z-20 pointer-events-none" id="scrub-shield"></div>
+            
             <!-- YouTube Iframe API Container -->
             <div id="youtube-player" class="w-full h-full"></div>
         </div>
 
         <div class="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span class="text-rose-400 font-bold">🔒 Scrubbing (Forward/Backward) is strictly locked</span>
+            <span class="text-rose-400 font-bold">🔒 Forward & Backward scrubbing locked</span>
             <a href="?" class="text-indigo-400 hover:underline">Create another link</a>
         </div>
     </div>
@@ -108,6 +118,7 @@
 
     <script>
         let ytPlayer = null;
+        let pendingVideoId = '';
 
         function refreshIcons() {
             lucide.createIcons();
@@ -120,56 +131,74 @@
             return (match && match[2].length === 11) ? match[2] : null;
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
+        window.onload = function() {
             refreshIcons();
-
             const urlParams = new URLSearchParams(window.location.search);
             const videoId = urlParams.get('v');
 
             if (videoId) {
-                // Show player view, hide generator
+                pendingVideoId = videoId;
                 document.getElementById('generator-view').classList.add('hidden');
                 document.getElementById('player-view').classList.remove('hidden');
 
-                // Initialize secure high-definition player
-                window.onYouTubeIframeAPIReady = function() {
-                    initPlayer(videoId);
-                };
+                // Load YouTube API
                 if (window.YT && window.YT.Player) {
-                    initPlayer(videoId);
+                    createPlayer(videoId);
                 }
             } else {
-                // Show generator view
                 document.getElementById('player-view').classList.add('hidden');
                 document.getElementById('generator-view').classList.remove('hidden');
             }
-        });
+        };
 
-        function initPlayer(videoId) {
+        function onYouTubeIframeAPIReady() {
+            if (pendingVideoId) {
+                createPlayer(pendingVideoId);
+            }
+        }
+
+        function createPlayer(videoId) {
             ytPlayer = new YT.Player('youtube-player', {
                 height: '100%',
                 width: '100%',
                 videoId: videoId,
                 playerVars: {
-                    'autoplay': 1,
-                    'controls': 0,        // Removes scrubbing timeline completely
-                    'disablekb': 1,       // Blocks keyboard arrow skipping
+                    'autoplay': 0,        // Handled by user gesture overlay for guaranteed mobile compatibility
+                    'controls': 0,        // Removes scrubbing timeline
+                    'disablekb': 1,       // Blocks keyboard skipping
                     'modestbranding': 1,
                     'rel': 0,
-                    'vq': 'hd1080'        // Forces HD start
+                    'vq': 'hd1080'
                 },
                 events: {
                     'onReady': function(event) {
                         event.target.setPlaybackQuality('hd1080');
-                        event.target.playVideo();
                     }
                 }
             });
+        }
 
-            // Trigger full screen / landscape auto-attempt
+        function startPlayback() {
+            if (ytPlayer && ytPlayer.playVideo) {
+                ytPlayer.setPlaybackQuality('hd1080');
+                ytPlayer.playVideo();
+            }
+            // Hide the play trigger overlay once clicked
+            const overlay = document.getElementById('play-trigger-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                // Enable pointer events block shield on video
+                document.getElementById('scrub-shield').style.pointerEvents = 'auto';
+            }, 300);
+
+            // Trigger full screen / landscape layout
             const wrapper = document.getElementById('video-wrapper');
             if (wrapper.requestFullscreen) {
                 wrapper.requestFullscreen().catch(err => {});
+            }
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(err => {});
             }
         }
 
