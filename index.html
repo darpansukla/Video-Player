@@ -106,11 +106,24 @@
                 </div>
             </div>
 
+            <!-- End Screen Options (Replay or Close Video) -->
+            <div id="end-screen-overlay" class="absolute inset-0 z-40 bg-black/90 flex flex-col items-center justify-center space-y-4 hidden" onclick="event.stopPropagation()">
+                <div class="text-white text-sm font-bold mb-2">Video Finished</div>
+                <div class="flex flex-col sm:flex-row gap-3 w-64">
+                    <button onclick="replayVideo()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-lg cursor-pointer flex items-center justify-center gap-2">
+                        <i data-lucide="rotate-cw" class="w-4 h-4"></i> Replay Video
+                    </button>
+                    <button onclick="closeVideo()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold border border-slate-700 cursor-pointer flex items-center justify-center gap-2">
+                        <i data-lucide="x" class="w-4 h-4"></i> Close Video
+                    </button>
+                </div>
+            </div>
+
             <!-- Transparent Anti-Scrub Shield -->
             <div class="absolute inset-0 z-20 pointer-events-auto"></div>
 
-            <!-- Edge-to-Edge Fullscreen YouTube Iframe -->
-            <iframe id="youtube-iframe" class="absolute inset-0 w-full h-full object-cover pointer-events-none scale-105" src="" title="Protected Player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            <!-- YouTube Iframe API Script Injector Container -->
+            <div id="player-target" class="absolute inset-0 w-full h-full pointer-events-none scale-105"></div>
         </div>
 
     </main>
@@ -120,6 +133,9 @@
         <p class="font-bold text-slate-700">Secure Protected Learning Portal</p>
         <p>Design & Developed with ❤️ by <span class="text-indigo-600 font-semibold">Darpan Sukla</span></p>
     </footer>
+
+    <!-- YouTube IFrame Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
         function refreshIcons() {
@@ -136,6 +152,7 @@
         let currentVideoId = '';
         let hideControlsTimer = null;
         let watermarkTriggered = false;
+        let player;
 
         window.addEventListener('DOMContentLoaded', () => {
             refreshIcons();
@@ -156,9 +173,6 @@
         function launchFullscreenStream() {
             if (!currentVideoId) return;
 
-            const embedUrl = `https://www.youtube.com/embed/${currentVideoId}?autoplay=1&controls=0&disablekb=1&modestbranding=1&rel=0`;
-            document.getElementById('youtube-iframe').src = embedUrl;
-
             document.getElementById('active-player-container').classList.remove('hidden');
             document.getElementById('player-trigger-view').classList.add('hidden');
 
@@ -170,17 +184,65 @@
                 screen.orientation.lock('landscape').catch(err => {});
             }
 
-            // Start auto-hide timer for controls upon entering
-            startHideControlsTimer();
+            // Initialize YouTube Player via API to track completion events
+            if (window.YT && window.YT.Player) {
+                initPlayer();
+            } else {
+                window.onYouTubeIframeAPIReady = initPlayer;
+            }
 
-            // Schedule watermark to appear after 30 seconds for 2 seconds (only once per view)
+            startHideControlsTimer();
+            triggerWatermark();
+        }
+
+        function initPlayer() {
+            player = new YT.Player('player-target', {
+                videoId: currentVideoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'modestbranding': 1,
+                    'rel': 0
+                },
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerStateChange(event) {
+            // YT.PlayerState.ENDED is 0
+            if (event.data === YT.PlayerState.ENDED) {
+                document.getElementById('end-screen-overlay').classList.remove('hidden');
+                document.getElementById('floating-controls').style.opacity = '0';
+                refreshIcons();
+            }
+        }
+
+        function replayVideo() {
+            document.getElementById('end-screen-overlay').classList.add('hidden');
+            if (player && player.seekTo) {
+                player.seekTo(0);
+                player.playVideo();
+            }
+            startHideControlsTimer();
+        }
+
+        function closeVideo() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(err => {});
+            }
+            window.location.href = window.location.pathname;
+        }
+
+        function triggerWatermark() {
             if (!watermarkTriggered) {
                 watermarkTriggered = true;
                 setTimeout(() => {
                     const watermark = document.getElementById('watermark-overlay');
                     watermark.style.opacity = '1';
                     
-                    // Hide after 2 seconds
                     setTimeout(() => {
                         watermark.style.opacity = '0';
                     }, 2000);
@@ -202,6 +264,9 @@
         }
 
         function handleScreenTap() {
+            const endScreen = document.getElementById('end-screen-overlay');
+            if (!endScreen.classList.contains('hidden')) return;
+
             const controls = document.getElementById('floating-controls');
             if (controls.style.opacity === '0' || controls.style.opacity === '') {
                 startHideControlsTimer();
