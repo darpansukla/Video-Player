@@ -70,12 +70,16 @@
             </div>
         </div>
 
-        <!-- VIEW 2: Completely White Initial Screen with Just Click Button -->
-        <div id="player-trigger-view" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 hidden">
+        <!-- VIEW 2: Completely White Initial Screen (Tap Anywhere to Play) -->
+        <div id="player-trigger-view" onclick="launchFullscreenStream()" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 cursor-pointer hidden">
             <div class="w-full max-w-sm text-center space-y-6">
-                <button onclick="launchFullscreenStream()" class="w-full py-5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-2xl text-sm font-extrabold shadow-xl shadow-indigo-600/30 cursor-pointer hover:opacity-95 transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="play" class="w-5 h-5 fill-white"></i> Click to Play
-                </button>
+                <div class="w-20 h-20 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center mx-auto shadow-xl shadow-indigo-600/30 animate-pulse">
+                    <i data-lucide="play" class="w-8 h-8 fill-white translate-x-0.5"></i>
+                </div>
+                <div class="space-y-1">
+                    <h2 class="text-sm font-extrabold text-slate-800 tracking-wide">Tap Anywhere to Start Video</h2>
+                    <p class="text-xs text-slate-400">Fullscreen Locked HD Stream</p>
+                </div>
             </div>
         </div>
 
