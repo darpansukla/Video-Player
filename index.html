@@ -2,194 +2,958 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Link Video Player</title>
-    <!-- Tailwind CSS -->
+
+    <meta name="viewport"
+          content="width=device-width,
+                   initial-scale=1.0,
+                   maximum-scale=1.0,
+                   user-scalable=no">
+
+    <title>Secure Video Player</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            min-height: 100%;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0f172a;
+            background: #0f172a;
             color: #f8fafc;
         }
+
         .liquid-card {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(30, 41, 59, 0.72);
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+        }
+
+        #video-wrapper:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            aspect-ratio: auto;
+            border: 0;
+            border-radius: 0;
+        }
+
+        #video-wrapper:-webkit-full-screen {
+            width: 100vw;
+            height: 100vh;
+            border: 0;
+            border-radius: 0;
+        }
+
+        #video-wrapper:fullscreen iframe,
+        #video-wrapper:-webkit-full-screen iframe {
+            width: 100%;
+            height: 100%;
+        }
+
+        #portrait-warning {
+            display: none;
+        }
+
+        @media (orientation: portrait) and (max-width: 900px) {
+            #portrait-warning.active {
+                display: flex;
+            }
+        }
+
+        #youtube-iframe {
+            border: 0;
         }
     </style>
 </head>
+
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- VIEW 1: Link Generator Dashboard -->
-    <div id="generator-view" class="max-w-xl w-full mx-auto liquid-card p-8 rounded-3xl shadow-2xl space-y-6 hidden">
-        <div class="text-center space-y-2">
-            <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto border border-indigo-500/30">
-                <i data-lucide="link" class="w-6 h-6"></i>
-            </div>
-            <h1 class="text-xl font-extrabold tracking-tight">Secure Video Link Creator</h1>
-            <p class="text-xs text-slate-400">Paste any YouTube link below to convert it into a locked, non-skippable HD stream link with enforced landscape mode.</p>
+
+<!-- =========================================================
+     GENERATOR
+========================================================= -->
+
+<div id="generator-view"
+     class="max-w-xl w-full mx-auto liquid-card
+            p-8 rounded-3xl shadow-2xl space-y-6 hidden">
+
+    <div class="text-center space-y-2">
+
+        <div class="w-12 h-12 bg-indigo-600/20
+                    text-indigo-400 rounded-2xl
+                    flex items-center justify-center mx-auto
+                    border border-indigo-500/30">
+
+            <i data-lucide="link" class="w-6 h-6"></i>
+
         </div>
 
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">YouTube Video URL:</label>
-                <input type="text" id="target-url-input" placeholder="https://youtu.be/..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 shadow-inner">
-            </div>
+        <h1 class="text-xl font-extrabold">
+            Secure Video Link Creator
+        </h1>
 
-            <button onclick="generateSecureLink()" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer flex items-center justify-center gap-2">
-                <i data-lucide="sparkles" class="w-4 h-4"></i> Generate Secure Link
+        <p class="text-xs text-slate-400">
+            Create a secure video link with automatic playback,
+            fullscreen and landscape mode.
+        </p>
+
+    </div>
+
+
+    <div class="space-y-4">
+
+        <div>
+
+            <label class="block text-xs font-bold uppercase
+                          tracking-wider text-slate-400 mb-1.5">
+
+                YouTube Video URL
+
+            </label>
+
+            <input
+                type="text"
+                id="target-url-input"
+                placeholder="https://youtu.be/..."
+                class="w-full bg-slate-900
+                       border border-slate-700
+                       rounded-xl px-4 py-3
+                       text-xs text-slate-200
+                       focus:outline-none
+                       focus:border-indigo-500">
+
+        </div>
+
+
+        <button
+            onclick="generateSecureLink()"
+            class="w-full py-3.5
+                   bg-gradient-to-r
+                   from-indigo-600 to-violet-600
+                   text-white rounded-xl
+                   text-xs font-bold
+                   flex items-center
+                   justify-center gap-2">
+
+            <i data-lucide="sparkles"
+               class="w-4 h-4"></i>
+
+            Generate Secure Link
+
+        </button>
+
+    </div>
+
+
+    <div id="result-box"
+         class="space-y-2 hidden
+                pt-2 border-t border-slate-800">
+
+        <label class="block text-xs font-bold
+                      uppercase tracking-wider
+                      text-emerald-400">
+
+            Shareable Secure Link
+
+        </label>
+
+
+        <div class="flex gap-2">
+
+            <input
+                type="text"
+                id="generated-link-output"
+                readonly
+                class="w-full bg-slate-900
+                       border border-slate-700
+                       rounded-xl px-3 py-2.5
+                       text-[11px]
+                       text-slate-300
+                       font-mono">
+
+            <button
+                onclick="copyGeneratedLink()"
+                class="px-4 py-2
+                       bg-slate-800
+                       text-slate-200
+                       rounded-xl
+                       text-xs font-semibold">
+
+                Copy
+
             </button>
+
         </div>
 
-        <div id="result-box" class="space-y-2 hidden pt-2 border-t border-slate-800">
-            <label class="block text-xs font-bold uppercase tracking-wider text-emerald-400">Your Shareable Secure Link:</label>
-            <div class="flex gap-2">
-                <input type="text" id="generated-link-output" readonly class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5 text-[11px] text-slate-300 font-mono select-all">
-                <button onclick="copyGeneratedLink()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer shrink-0 flex items-center gap-1.5">
-                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
-                </button>
-            </div>
-        </div>
     </div>
 
-    <!-- VIEW 2: Secure Locked Player View -->
-    <div id="player-view" class="max-w-3xl w-full mx-auto space-y-4 hidden">
-        
-        <!-- Top Toolbar Control Bar -->
-        <div class="liquid-card px-4 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
-            <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
-                <i data-lucide="shield-check" class="w-4 h-4"></i> Secure Stream Locked (Landscape Only)
-            </div>
-            
-            <div class="flex items-center gap-2.5">
-                <!-- Quality Switcher -->
-                <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-700/80 rounded-xl px-2.5 py-1">
-                    <i data-lucide="settings" class="w-3.5 h-3.5 text-indigo-400"></i>
-                    <select id="quality-select" onchange="changeQuality(this.value)" class="bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none cursor-pointer">
-                        <option value="hd1080">1080p (Full HD)</option>
-                        <option value="hd720">720p (HD)</option>
-                        <option value="large">480p</option>
-                        <option value="default" selected>Auto (HD)</option>
-                    </select>
-                </div>
-            </div>
+</div>
+
+
+
+<!-- =========================================================
+     PLAYER
+========================================================= -->
+
+<div id="player-view"
+     class="max-w-5xl w-full mx-auto
+            space-y-4 hidden">
+
+
+    <!-- TOOLBAR -->
+
+    <div class="liquid-card px-4 py-3
+                rounded-2xl
+                flex flex-wrap
+                items-center
+                justify-between
+                gap-3">
+
+        <div class="flex items-center gap-2
+                    text-xs font-semibold
+                    text-indigo-400">
+
+            <i data-lucide="shield-check"
+               class="w-4 h-4"></i>
+
+            Secure Stream
+
         </div>
 
-        <!-- Video Wrapper Container -->
-        <div id="video-wrapper" class="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl bg-black border border-slate-800">
-            
-            <!-- Mobile Tap-to-Play Overlay (Forces Landscape & Fullscreen on Tap) -->
-            <div id="play-trigger-overlay" onclick="launchSecureStream()" class="absolute inset-0 z-30 bg-slate-950/95 flex flex-col items-center justify-center cursor-pointer transition-all">
-                <div class="w-20 h-20 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-600/60 mb-3 animate-pulse">
-                    <i data-lucide="play" class="w-9 h-9 fill-white translate-x-0.5"></i>
-                </div>
-                <span class="text-sm font-extrabold text-white tracking-wide">Tap to Play in Landscape HD</span>
-                <span class="text-[11px] text-indigo-300 mt-1">Scrubbing Disabled • Portrait Blocked</span>
+
+        <div class="flex items-center gap-2">
+
+
+            <!-- QUALITY -->
+
+            <div class="flex items-center gap-1
+                        bg-slate-900
+                        border border-slate-700
+                        rounded-xl px-2.5 py-1">
+
+                <i data-lucide="settings"
+                   class="w-3.5 h-3.5
+                          text-indigo-400"></i>
+
+                <select
+                    id="quality-select"
+                    onchange="changeQuality(this.value)"
+                    class="bg-transparent
+                           text-[11px]
+                           font-bold
+                           text-slate-200
+                           focus:outline-none">
+
+                    <option value="default">
+                        Auto HD
+                    </option>
+
+                    <option value="hd1080">
+                        1080p
+                    </option>
+
+                    <option value="hd720">
+                        720p
+                    </option>
+
+                    <option value="large">
+                        480p
+                    </option>
+
+                </select>
+
             </div>
 
-            <!-- Transparent shield overlay to block direct clicks/scrubbing during playback -->
-            <div class="absolute inset-0 z-20 pointer-events-none" id="scrub-shield"></div>
-            
-            <!-- YouTube Iframe API Container -->
-            <iframe id="youtube-iframe" class="w-full h-full" src="" title="Protected Video Player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
+            <!-- ROTATE -->
+
+            <button
+                onclick="rotateScreen()"
+                class="flex items-center
+                       gap-1.5
+                       bg-indigo-600
+                       hover:bg-indigo-500
+                       text-white
+                       rounded-xl
+                       px-3 py-2
+                       text-[11px]
+                       font-bold">
+
+                <i data-lucide="rotate-cw"
+                   class="w-4 h-4"></i>
+
+                Rotate
+
+            </button>
+
         </div>
 
-        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
-            <span class="text-rose-400 font-bold">🔒 Forward & Backward scrubbing locked</span>
-            <a href="?" class="text-indigo-400 hover:underline">Create another link</a>
-        </div>
     </div>
 
-    <footer class="mt-8 text-center text-[11px] text-slate-500">
-        Secure Protected Learning Portal
-    </footer>
 
-    <script>
-        function refreshIcons() {
-            lucide.createIcons();
+
+    <!-- VIDEO -->
+
+    <div id="video-wrapper"
+         class="relative w-full
+                aspect-video
+                rounded-3xl
+                overflow-hidden
+                shadow-2xl
+                bg-black
+                border border-slate-800">
+
+
+        <!-- PORTRAIT WARNING -->
+
+        <div id="portrait-warning"
+             class="absolute inset-0 z-50
+                    bg-slate-950
+                    flex-col
+                    items-center
+                    justify-center
+                    text-center p-6">
+
+            <div class="w-16 h-16
+                        bg-indigo-600/20
+                        rounded-2xl
+                        flex items-center
+                        justify-center mb-4">
+
+                <i data-lucide="smartphone"
+                   class="w-8 h-8
+                          text-indigo-400"></i>
+
+            </div>
+
+
+            <h2 class="text-lg font-extrabold mb-2">
+                Rotate Your Phone
+            </h2>
+
+
+            <p class="text-xs text-slate-400">
+                Please turn your phone sideways
+                for landscape video.
+            </p>
+
+
+            <button
+                onclick="rotateScreen()"
+                class="mt-5
+                       bg-indigo-600
+                       px-5 py-3
+                       rounded-xl
+                       text-xs font-bold">
+
+                <i data-lucide="rotate-cw"
+                   class="w-4 h-4
+                          inline-block mr-1"></i>
+
+                Rotate Screen
+
+            </button>
+
+        </div>
+
+
+        <!-- SEEK PROTECTION -->
+
+        <div id="scrub-shield"
+             class="absolute inset-0
+                    z-20
+                    pointer-events:none">
+        </div>
+
+
+        <!-- YOUTUBE -->
+
+        <iframe
+            id="youtube-iframe"
+            class="w-full h-full"
+            src=""
+            title="Secure Video Player"
+            frameborder="0"
+            allow="autoplay;
+                   encrypted-media;
+                   fullscreen;
+                   picture-in-picture"
+            allowfullscreen>
+        </iframe>
+
+    </div>
+
+
+    <!-- INFO -->
+
+    <div class="flex items-center
+                justify-between
+                text-xs
+                text-slate-400 px-1">
+
+        <span class="text-rose-400 font-bold">
+            🔒 Scrubbing locked
+        </span>
+
+
+        <button
+            onclick="rotateScreen()"
+            class="text-indigo-400
+                   flex items-center gap-1">
+
+            <i data-lucide="rotate-cw"
+               class="w-3.5 h-3.5"></i>
+
+            Rotate Screen
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<footer class="mt-8
+               text-center
+               text-[11px]
+               text-slate-500">
+
+    Secure Protected Learning Portal
+
+</footer>
+
+
+
+<script>
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
+let currentVideoId = "";
+
+let playerStarted = false;
+
+
+/* =========================================================
+   ICONS
+========================================================= */
+
+function refreshIcons() {
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+
+}
+
+
+/* =========================================================
+   YOUTUBE ID
+========================================================= */
+
+function extractYouTubeId(url) {
+
+    if (!url) return null;
+
+    url = url.trim();
+
+    const patterns = [
+
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+
+        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+
+        /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/
+
+    ];
+
+    for (const pattern of patterns) {
+
+        const match = url.match(pattern);
+
+        if (match) {
+            return match[1];
         }
 
-        function extractYouTubeId(url) {
-            if (!url) return null;
-            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    return null;
+
+}
+
+
+/* =========================================================
+   PAGE LOAD
+========================================================= */
+
+window.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        refreshIcons();
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        currentVideoId =
+            params.get("v");
+
+
+        if (currentVideoId) {
+
+            document
+                .getElementById("generator-view")
+                .classList.add("hidden");
+
+            document
+                .getElementById("player-view")
+                .classList.remove("hidden");
+
+
+            /*
+             * IMPORTANT:
+             * Start video automatically.
+             */
+
+            startAutomaticVideo();
+
+        } else {
+
+            document
+                .getElementById("player-view")
+                .classList.add("hidden");
+
+            document
+                .getElementById("generator-view")
+                .classList.remove("hidden");
+
         }
 
-        let currentVideoId = '';
+    }
+);
 
-        window.addEventListener('DOMContentLoaded', () => {
-            refreshIcons();
-            const urlParams = new URLSearchParams(window.location.search);
-            currentVideoId = urlParams.get('v');
 
-            if (currentVideoId) {
-                document.getElementById('generator-view').classList.add('hidden');
-                document.getElementById('player-view').classList.remove('hidden');
-            } else {
-                document.getElementById('player-view').classList.add('hidden');
-                document.getElementById('generator-view').classList.remove('hidden');
-            }
-        });
+/* =========================================================
+   AUTOMATIC VIDEO START
+========================================================= */
 
-        function launchSecureStream() {
-            if (!currentVideoId) return;
+function startAutomaticVideo() {
 
-            // Load iframe with autoplay parameters upon user tap
-            const embedUrl = `https://www.youtube.com/embed/${currentVideoId}?autoplay=1&controls=0&disablekb=1&modestbranding=1&rel=0`;
-            document.getElementById('youtube-iframe').src = embedUrl;
+    if (!currentVideoId) return;
 
-            // Fade out the overlay smoothly
-            const overlay = document.getElementById('play-trigger-overlay');
-            overlay.style.opacity = '0';
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                document.getElementById('scrub-shield').style.pointerEvents = 'auto';
-            }, 300);
+    if (playerStarted) return;
 
-            // Request full screen and enforce strict landscape orientation lock
-            const wrapper = document.getElementById('video-wrapper');
-            if (wrapper.requestFullscreen) {
-                wrapper.requestFullscreen().catch(err => {});
-            }
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(err => {
-                    console.log("Orientation lock requires full screen or device permission.");
-                });
-            }
+    playerStarted = true;
+
+
+    const iframe =
+        document.getElementById(
+            "youtube-iframe"
+        );
+
+
+    /*
+     * autoplay=1
+     * mute=1
+     *
+     * Muted autoplay is much more
+     * likely to work on mobile browsers.
+     */
+
+    const embedUrl =
+        "https://www.youtube.com/embed/" +
+        encodeURIComponent(currentVideoId) +
+
+        "?autoplay=1" +
+
+        "&mute=1" +
+
+        "&controls=0" +
+
+        "&disablekb=1" +
+
+        "&modestbranding=1" +
+
+        "&rel=0" +
+
+        "&playsinline=1";
+
+
+    iframe.src = embedUrl;
+
+
+    /*
+     * Attempt fullscreen.
+     *
+     * This may be blocked because
+     * fullscreen normally requires
+     * a user gesture.
+     */
+
+    setTimeout(
+        function () {
+
+            requestFullscreen();
+
+            lockLandscape();
+
+        },
+        500
+    );
+
+
+    updatePortraitWarning();
+
+}
+
+
+/* =========================================================
+   FULLSCREEN
+========================================================= */
+
+async function requestFullscreen() {
+
+    const wrapper =
+        document.getElementById(
+            "video-wrapper"
+        );
+
+    try {
+
+        if (document.fullscreenElement) {
+            return;
         }
 
-        function generateSecureLink() {
-            const rawUrl = document.getElementById('target-url-input').value;
-            const videoId = extractYouTubeId(rawUrl);
+        if (wrapper.requestFullscreen) {
 
-            if (!videoId) {
-                alert("Please enter a valid YouTube video link.");
-                return;
-            }
+            await wrapper.requestFullscreen();
 
-            const currentBaseUrl = window.location.origin + window.location.pathname;
-            const secureLink = `${currentBaseUrl}?v=${videoId}`;
+        }
+        else if (
+            wrapper.webkitRequestFullscreen
+        ) {
 
-            document.getElementById('generated-link-output').value = secureLink;
-            document.getElementById('result-box').classList.remove('hidden');
-            refreshIcons();
+            wrapper.webkitRequestFullscreen();
+
         }
 
-        function copyGeneratedLink() {
-            const copyText = document.getElementById('generated-link-output');
-            copyText.select();
-            document.execCommand('copy');
-            alert("Secure link copied to clipboard!");
+    }
+    catch (error) {
+
+        console.log(
+            "Fullscreen blocked by browser."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   LANDSCAPE
+========================================================= */
+
+async function lockLandscape() {
+
+    try {
+
+        if (
+            screen.orientation &&
+            screen.orientation.lock
+        ) {
+
+            await screen.orientation.lock(
+                "landscape"
+            );
+
         }
 
-        function changeQuality(qualityVal) {
-            console.log("Quality updated:", qualityVal);
+    }
+    catch (error) {
+
+        console.log(
+            "Automatic orientation lock unavailable."
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ROTATE BUTTON
+========================================================= */
+
+async function rotateScreen() {
+
+    /*
+     * This button provides a user gesture,
+     * so fullscreen/orientation requests
+     * have a much better chance of working.
+     */
+
+    await requestFullscreen();
+
+    await lockLandscape();
+
+    updatePortraitWarning();
+
+}
+
+
+/* =========================================================
+   PORTRAIT DETECTION
+========================================================= */
+
+function updatePortraitWarning() {
+
+    const warning =
+        document.getElementById(
+            "portrait-warning"
+        );
+
+    if (!warning) return;
+
+
+    const mobile =
+        window.innerWidth <= 900;
+
+    const portrait =
+        window.innerHeight >
+        window.innerWidth;
+
+
+    if (
+        mobile &&
+        portrait &&
+        playerStarted
+    ) {
+
+        warning.classList.add(
+            "active"
+        );
+
+    }
+    else {
+
+        warning.classList.remove(
+            "active"
+        );
+
+    }
+
+}
+
+
+window.addEventListener(
+    "resize",
+    updatePortraitWarning
+);
+
+
+if (screen.orientation) {
+
+    screen.orientation.addEventListener(
+        "change",
+        updatePortraitWarning
+    );
+
+}
+
+
+/* =========================================================
+   GENERATE LINK
+========================================================= */
+
+function generateSecureLink() {
+
+    const input =
+        document.getElementById(
+            "target-url-input"
+        );
+
+    const videoId =
+        extractYouTubeId(
+            input.value
+        );
+
+
+    if (!videoId) {
+
+        alert(
+            "Please enter a valid YouTube video link."
+        );
+
+        return;
+
+    }
+
+
+    const baseUrl =
+        window.location.origin +
+        window.location.pathname;
+
+
+    const secureLink =
+        baseUrl +
+        "?v=" +
+        encodeURIComponent(
+            videoId
+        );
+
+
+    document
+        .getElementById(
+            "generated-link-output"
+        )
+        .value =
+        secureLink;
+
+
+    document
+        .getElementById(
+            "result-box"
+        )
+        .classList.remove(
+            "hidden"
+        );
+
+}
+
+
+/* =========================================================
+   COPY
+========================================================= */
+
+async function copyGeneratedLink() {
+
+    const input =
+        document.getElementById(
+            "generated-link-output"
+        );
+
+    try {
+
+        await navigator.clipboard.writeText(
+            input.value
+        );
+
+        alert(
+            "Secure link copied!"
+        );
+
+    }
+    catch (error) {
+
+        input.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+        alert(
+            "Secure link copied!"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   QUALITY
+========================================================= */
+
+function changeQuality(value) {
+
+    console.log(
+        "Quality requested:",
+        value
+    );
+
+}
+
+
+/* =========================================================
+   DISABLE CONTEXT MENU
+========================================================= */
+
+document.addEventListener(
+    "contextmenu",
+    function (event) {
+
+        if (
+            event.target.closest(
+                "#video-wrapper"
+            )
+        ) {
+
+            event.preventDefault();
+
         }
-    </script>
+
+    }
+);
+
+
+/* =========================================================
+   BLOCK SEEK KEYBOARD SHORTCUTS
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (!playerStarted) return;
+
+        const blocked = [
+
+            "ArrowLeft",
+            "ArrowRight"
+
+        ];
+
+        if (
+            blocked.includes(
+                event.key
+            )
+        ) {
+
+            event.preventDefault();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   ICONS
+========================================================= */
+
+refreshIcons();
+
+</script>
+
 </body>
 </html>
