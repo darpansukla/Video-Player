@@ -70,14 +70,14 @@
             </div>
         </div>
 
-        <!-- VIEW 2: Completely White Initial Screen (Only Play Icon, No Text) -->
+        <!-- VIEW 2: Completely White Initial Screen (Only Play Icon, Tap Anywhere to Play) -->
         <div id="player-trigger-view" onclick="launchFullscreenStream()" class="fixed inset-0 z-50 bg-white flex flex-col items-center justify-center p-6 cursor-pointer hidden">
             <div class="w-24 h-24 bg-gradient-to-tr from-indigo-600 to-violet-600 text-white rounded-full flex items-center justify-center shadow-2xl shadow-indigo-600/40 animate-pulse">
                 <i data-lucide="play" class="w-10 h-10 fill-white translate-x-0.5"></i>
             </div>
         </div>
 
-        <!-- VIEW 3: Active Fullscreen Video Container with Auto-hiding Controls -->
+        <!-- VIEW 3: Active Fullscreen Video Container with Auto-hiding Controls & Watermark Overlay -->
         <div id="active-player-container" class="fixed inset-0 z-50 bg-black hidden flex flex-col items-center justify-center" onclick="handleScreenTap()">
             
             <!-- Floating Top Toolbar (Auto-hides after 2 seconds) -->
@@ -99,8 +99,15 @@
                 </div>
             </div>
 
+            <!-- Subtle Non-Disturbing Watermark Overlay (Shows after 30 sec for 2 sec, then hides) -->
+            <div id="watermark-overlay" class="absolute bottom-6 right-6 z-30 pointer-events-none transition-opacity-custom opacity-0">
+                <div class="bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-md border border-white/5 flex items-center gap-1 text-[9px] text-white/60 font-medium tracking-wide">
+                    <span>❤️</span> <span>Darpan Sukla</span>
+                </div>
+            </div>
+
             <!-- Transparent Anti-Scrub Shield -->
-            <div class="absolute inset-0 z-30 pointer-events-auto"></div>
+            <div class="absolute inset-0 z-20 pointer-events-auto"></div>
 
             <!-- Edge-to-Edge Fullscreen YouTube Iframe -->
             <iframe id="youtube-iframe" class="absolute inset-0 w-full h-full object-cover pointer-events-none scale-105" src="" title="Protected Player" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
@@ -128,6 +135,7 @@
 
         let currentVideoId = '';
         let hideControlsTimer = null;
+        let watermarkTriggered = false;
 
         window.addEventListener('DOMContentLoaded', () => {
             refreshIcons();
@@ -164,6 +172,20 @@
 
             // Start auto-hide timer for controls upon entering
             startHideControlsTimer();
+
+            // Schedule watermark to appear after 30 seconds for 2 seconds (only once per view)
+            if (!watermarkTriggered) {
+                watermarkTriggered = true;
+                setTimeout(() => {
+                    const watermark = document.getElementById('watermark-overlay');
+                    watermark.style.opacity = '1';
+                    
+                    // Hide after 2 seconds
+                    setTimeout(() => {
+                        watermark.style.opacity = '0';
+                    }, 2000);
+                }, 30000);
+            }
         }
 
         function startHideControlsTimer() {
