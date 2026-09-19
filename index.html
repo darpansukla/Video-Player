@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Link Video Player</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .liquid-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- VIEW 1: Link Generator Creator Dashboard (Shown if no link parameter is present) -->
+    <div id="generator-view" class="max-w-xl w-full mx-auto liquid-card p-8 rounded-3xl shadow-2xl space-y-6 hidden">
+        <div class="text-center space-y-2">
+            <div class="w-12 h-12 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center mx-auto border border-indigo-500/30">
+                <i data-lucide="link" class="w-6 h-6"></i>
+            </div>
+            <h1 class="text-xl font-extrabold tracking-tight">Secure Video Link Creator</h1>
+            <p class="text-xs text-slate-400">Paste any YouTube link below to convert it into a locked, non-skippable HD stream link.</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">YouTube Video URL:</label>
+                <input type="text" id="target-url-input" placeholder="https://youtu.be/..." class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 shadow-inner">
+            </div>
+
+            <button onclick="generateSecureLink()" class="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all cursor-pointer flex items-center justify-center gap-2">
+                <i data-lucide="sparkles" class="w-4 h-4"></i> Generate Secure Link
+            </button>
+        </div>
+
+        <!-- Result Box -->
+        <div id="result-box" class="space-y-2 hidden pt-2 border-t border-slate-800">
+            <label class="block text-xs font-bold uppercase tracking-wider text-emerald-400">Your Shareable Secure Link:</label>
+            <div class="flex gap-2">
+                <input type="text" id="generated-link-output" readonly class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-3 py-2.5 text-[11px] text-slate-300 font-mono select-all">
+                <button onclick="copyGeneratedLink()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 cursor-pointer shrink-0 flex items-center gap-1.5">
+                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 2: Secure Locked Player View (Shown when someone clicks a generated link) -->
+    <div id="player-view" class="max-w-3xl w-full mx-auto space-y-4 hidden">
+        
+        <!-- Top Toolbar Control Bar -->
+        <div class="liquid-card px-4 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
+            <div class="flex items-center gap-2 text-xs font-semibold text-indigo-400">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> Secure Stream Locked
+            </div>
+            
+            <div class="flex items-center gap-2.5">
+                <!-- Quality Switcher -->
+                <div class="flex items-center gap-1 bg-slate-900/80 border border-slate-700/80 rounded-xl px-2.5 py-1">
+                    <i data-lucide="settings" class="w-3.5 h-3.5 text-indigo-400"></i>
+                    <select id="quality-select" onchange="changeQuality(this.value)" class="bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none cursor-pointer">
+                        <option value="hd1080">1080p (Full HD)</option>
+                        <option value="hd720">720p (HD)</option>
+                        <option value="large">480p</option>
+                        <option value="default" selected>Auto (HD)</option>
+                    </select>
+                </div>
+
+                <!-- Rotate Screen Button -->
+                <button onclick="toggleScreenOrientation()" title="Rotate Screen" class="inline-flex items-center gap-1 text-xs font-semibold text-indigo-300 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 px-3 py-1.5 rounded-xl cursor-pointer">
+                    <i data-lucide="smartphone-nfc" class="w-3.5 h-3.5"></i> Rotate
+                </button>
+            </div>
+        </div>
+
+        <!-- Video Wrapper Container -->
+        <div id="video-wrapper" class="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl bg-black border border-slate-800">
+            <!-- Transparent shield to block scrubbing clicks -->
+            <div class="absolute inset-0 z-20 cursor-not-allowed"></div>
+            <!-- YouTube Iframe API Container -->
+            <div id="youtube-player" class="w-full h-full"></div>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-400 px-1">
+            <span class="text-rose-400 font-bold">🔒 Scrubbing (Forward/Backward) is strictly locked</span>
+            <a href="?" class="text-indigo-400 hover:underline">Create another link</a>
+        </div>
+    </div>
+
+    <footer class="mt-8 text-center text-[11px] text-slate-500">
+        Secure Protected Learning Portal
+    </footer>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script>
+        let ytPlayer = null;
+
+        function refreshIcons() {
+            lucide.createIcons();
+        }
+
+        function extractYouTubeId(url) {
+            if (!url) return null;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            refreshIcons();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('v');
+
+            if (videoId) {
+                // Show player view, hide generator
+                document.getElementById('generator-view').classList.add('hidden');
+                document.getElementById('player-view').classList.remove('hidden');
+
+                // Initialize secure high-definition player
+                window.onYouTubeIframeAPIReady = function() {
+                    initPlayer(videoId);
+                };
+                if (window.YT && window.YT.Player) {
+                    initPlayer(videoId);
+                }
+            } else {
+                // Show generator view
+                document.getElementById('player-view').classList.add('hidden');
+                document.getElementById('generator-view').classList.remove('hidden');
+            }
+        });
+
+        function initPlayer(videoId) {
+            ytPlayer = new YT.Player('youtube-player', {
+                height: '100%',
+                width: '100%',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 0,        // Removes scrubbing timeline completely
+                    'disablekb': 1,       // Blocks keyboard arrow skipping
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'vq': 'hd1080'        // Forces HD start
+                },
+                events: {
+                    'onReady': function(event) {
+                        event.target.setPlaybackQuality('hd1080');
+                        event.target.playVideo();
+                    }
+                }
+            });
+
+            // Trigger full screen / landscape auto-attempt
+            const wrapper = document.getElementById('video-wrapper');
+            if (wrapper.requestFullscreen) {
+                wrapper.requestFullscreen().catch(err => {});
+            }
+        }
+
+        function generateSecureLink() {
+            const rawUrl = document.getElementById('target-url-input').value;
+            const videoId = extractYouTubeId(rawUrl);
+
+            if (!videoId) {
+                alert("Please enter a valid YouTube video link.");
+                return;
+            }
+
+            const currentBaseUrl = window.location.origin + window.location.pathname;
+            const secureLink = `${currentBaseUrl}?v=${videoId}`;
+
+            document.getElementById('generated-link-output').value = secureLink;
+            document.getElementById('result-box').classList.remove('hidden');
+            refreshIcons();
+        }
+
+        function copyGeneratedLink() {
+            const copyText = document.getElementById('generated-link-output');
+            copyText.select();
+            document.execCommand('copy');
+            alert("Secure link copied to clipboard!");
+        }
+
+        function changeQuality(qualityVal) {
+            if (ytPlayer && ytPlayer.setPlaybackQuality) {
+                ytPlayer.setPlaybackQuality(qualityVal);
+            }
+        }
+
+        function toggleScreenOrientation() {
+            const wrapper = document.getElementById('video-wrapper');
+            if (!document.fullscreenElement) {
+                if (wrapper.requestFullscreen) {
+                    wrapper.requestFullscreen();
+                }
+            }
+            if (screen.orientation && screen.orientation.lock) {
+                const currentType = screen.orientation.type;
+                if (currentType.includes('landscape')) {
+                    screen.orientation.lock('portrait').catch(err => {});
+                } else {
+                    screen.orientation.lock('landscape').catch(err => {});
+                }
+            } else {
+                alert("Screen rotation is managed by your device settings.");
+            }
+        }
+    </script>
+</body>
+</html>
